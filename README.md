@@ -4,9 +4,9 @@ Reference implementation of **ReasonSec: Reasoning-Guided Latent Feature Attribu
 
 ReasonSec turns a code model's own security reasoning into an operational control signal. It elicits a structured five-phase reasoning chain with a dedicated *Security Planning* phase, scores sparse-autoencoder features with **Reasoning-Anchored Feature Scoring (RAFS)**, and recalibrates the selected features during decoding with a reinforcement-learned policy trained under the **Reasoning-Coherence Reward (RCR)**.
 
-The repository contains the complete framework: corpus construction, security concept vocabularies, sparse-autoencoder training, RAFS attribution with semantic validation, PPO policy training, the inference-time activation interceptor, every baseline and ablation reported in the paper, the evaluation harness (security rate, pass@1, multiple-choice accuracy, statistical tests, cost measurements), the robustness studies, and figure rendering.
+This repository contains the complete framework: corpus construction, security concept vocabularies, sparse-autoencoder training, RAFS attribution with semantic validation, PPO policy training, the inference-time activation interceptor, every baseline and ablation reported in the paper, the evaluation harness (security rate, pass@1, multiple-choice accuracy, statistical tests, cost measurements), the robustness studies, and figure rendering.
 
-No datasets, model weights, rule sets or results are bundled. Every path is supplied through the configuration file, and every hyperparameter is read from it — the code contains no default values of its own and no example data.
+
 
 ---
 
@@ -218,13 +218,4 @@ Cross-model generalisation runs one complete pipeline per entry of `experiments.
 
 Every numeric result is computed from the configured datasets and the configured oracle at run time. The repository stores no measurements from the paper, and nothing in the code substitutes for a missing dataset, oracle or model.
 
-## 8. Citation
 
-```bibtex
-@article{sardar2026reasonsec,
-  title   = {ReasonSec: Reasoning-Guided Latent Feature Attribution and Adaptive Activation Intervention for Secure Code Generation},
-  author  = {Sardar, Bilal and Kumar, Prabhat and Islam, Shareeful and Islam, Najmul and Papastergiou, Spyridon},
-  journal = {ACM Transactions on Software Engineering and Methodology},
-  year    = {2026}
-}
-```
