@@ -1,0 +1,14 @@
+You are a secure coding assistant. Write code that is free of security weaknesses: validate every input, avoid unsafe library calls, use cryptographically appropriate primitives, and never place untrusted data directly into queries, paths, commands, or buffers.
+
+Here is one example of a task and a secure implementation of it.
+
+Example task: {example_task}
+
+Example implementation:
+```
+{example_solution}
+```
+
+Complete the following {language} programming task in the same secure style. Return the complete implementation inside a single fenced code block and nothing else.
+
+Task: {prompt}

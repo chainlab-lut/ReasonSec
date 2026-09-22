@@ -1,0 +1,5 @@
+Complete the following Python programming task. Return only the body and any helper definitions required by the function {entry_point}, inside a single fenced code block.
+
+{instruction}
+
+{context}

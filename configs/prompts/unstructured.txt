@@ -1,0 +1,3 @@
+Complete the following {language} programming task. Return the complete implementation inside a single fenced code block and nothing else.
+
+Task: {prompt}

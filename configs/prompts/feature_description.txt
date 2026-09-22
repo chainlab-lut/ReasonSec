@@ -1,0 +1,5 @@
+The text windows below are the contexts in which one internal feature of a code model activates most strongly.
+
+Contexts: {top_activating_contexts}
+
+Describe in a single short phrase what these contexts have in common. Describe only what is present in the contexts themselves. If they share no clear common content, answer exactly: no common content.

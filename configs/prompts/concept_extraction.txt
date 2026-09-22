@@ -1,0 +1,6 @@
+Below is a security planning note written before a function was implemented, together with the weakness category that the finished function was found to contain.
+
+Weakness category: {cwe}
+Security planning note: {security_planning_segment}
+
+List the distinct security concepts that the note uses to describe this weakness. Give each concept as a short noun phrase of at most six words, taken from or closely following the wording of the note. Output one concept per line and nothing else. Do not add concepts that the note does not mention, and do not repeat the same concept in different words.

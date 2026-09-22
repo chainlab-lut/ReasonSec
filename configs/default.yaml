@@ -1,0 +1,590 @@
+run:
+  name: reasonsec
+  seed: 42
+  seeds: [42, 123, 456]
+  output_directory: "${env:REASONSEC_OUTPUT_DIRECTORY:./runs/reasonsec}"
+  log_level: "INFO"
+  log_file: "${env:REASONSEC_OUTPUT_DIRECTORY:./runs/reasonsec}/reasonsec.log"
+  deterministic_algorithms: true
+  seed_scoped_outputs: true
+
+cwe_catalog:
+  path: "${env:REASONSEC_CWE_CATALOG:/absolute/path/to/cwec_latest.xml}"
+  min_phrase_words: 2
+  supplementary_terms_path: null
+  match:
+    mode: coverage
+    minimum_token_coverage: 0.75
+    minimum_matched_tokens: 2
+
+datasets:
+  cyberseceval2:
+    path: "${env:REASONSEC_CYBERSECEVAL2:/absolute/path/to/cyberseceval2/instruct.json}"
+    format: json
+    default_language: null
+    cwe_from_identifier_pattern: null
+    languages: null
+    metadata_fields: ["origin_code", "line_text", "pattern_desc", "rule"]
+    fields:
+      identifier: null
+      prompt: test_case_prompt
+      language: language
+      cwe: cwe_identifier
+      context: null
+  securityeval:
+    path: "${env:REASONSEC_SECURITYEVAL:/absolute/path/to/securityeval/dataset.jsonl}"
+    format: jsonl
+    default_language: python
+    cwe_from_identifier_pattern: "CWE-(\\d+)"
+    languages: null
+    metadata_fields: []
+    fields:
+      identifier: ID
+      prompt: Prompt
+      language: null
+      cwe: null
+      context: null
+  instructhumaneval:
+    path: "${env:REASONSEC_INSTRUCTHUMANEVAL:/absolute/path/to/instructhumaneval/test.jsonl}"
+    format: jsonl
+    fields:
+      task_id: task_id
+      instruction: instruction
+      context: context
+      test: test
+      entry_point: entry_point
+  mmlu:
+    format: csv
+    choice_count: 4
+    answer_labels: ["A", "B", "C", "D"]
+    subject_from_filename_pattern: "^(.*)_(?:test|dev|val)\\.csv$"
+    splits:
+      test: "${env:REASONSEC_MMLU_TEST:/absolute/path/to/mmlu/test}"
+      dev: "${env:REASONSEC_MMLU_DEV:/absolute/path/to/mmlu/dev}"
+
+model:
+  name_or_path: "${env:REASONSEC_MODEL:/absolute/path/to/llama-3.1-8b-instruct}"
+  tokenizer_name_or_path: null
+  revision: null
+  trust_remote_code: false
+  preformatted_add_special_tokens: false
+  device: "${env:REASONSEC_DEVICE:cuda}"
+  device_map: null
+  dtype: bfloat16
+  use_cache: true
+  layer: 19
+  layer_module_path: "model.layers.{layer}"
+  hook_output_index: 0
+  max_new_tokens: 350
+  max_input_tokens: 4096
+  quantization:
+    enabled: true
+    bits: 4
+    quant_type: nf4
+    compute_dtype: bfloat16
+    double_quantization: true
+  chat_template:
+    enabled: true
+    system_prompt: null
+  generation:
+    do_sample: false
+    num_beams: 1
+
+embedder:
+  name_or_path: "${env:REASONSEC_EMBEDDER:/absolute/path/to/sentence-transformer}"
+  max_length: 256
+  batch_size: 16
+  pooling: mean
+  normalise: true
+  device: "${env:REASONSEC_DEVICE:cuda}"
+  dtype: float32
+
+oracle:
+  primary: insecure_code_detector
+  cwe_selection_strategy: expected_first
+  working_directory: "${env:REASONSEC_OUTPUT_DIRECTORY:./runs/reasonsec}/oracle_workspace"
+  cache:
+    enabled: true
+    path: "${env:REASONSEC_OUTPUT_DIRECTORY:./runs/reasonsec}/oracle_cache.jsonl"
+  definitions:
+    insecure_code_detector:
+      components: ["semgrep", "regex"]
+    semgrep_only:
+      components: ["semgrep"]
+    codeql:
+      components: ["codeql"]
+  language_extensions:
+    python: ".py"
+    c: ".c"
+    cpp: ".cpp"
+    "c++": ".cpp"
+    java: ".java"
+    javascript: ".js"
+    typescript: ".ts"
+    php: ".php"
+    csharp: ".cs"
+    rust: ".rs"
+    go: ".go"
+  semgrep:
+    binary: semgrep
+    rule_sources: ["${env:REASONSEC_SEMGREP_RULES:/absolute/path/to/semgrep/rules}"]
+    timeout_seconds: 120
+    extra_arguments: []
+    metadata_cwe_keys: ["cwe", "cwe_id", "cwe2021-top25", "cwe2022-top25"]
+  regex:
+    rule_paths: ["${env:REASONSEC_REGEX_RULES:/absolute/path/to/insecure_code_detector/rules}"]
+    case_sensitive: false
+    fields:
+      pattern: regex
+      cwe: cwe_id
+      language: language
+      identifier: rule_id
+      message: description
+  codeql:
+    binary: codeql
+    language: python
+    query_suite: "${env:REASONSEC_CODEQL_SUITE:python-security-and-quality.qls}"
+    timeout_seconds: 1800
+    threads: 4
+
+preprocessing:
+  languages: ["c", "cpp", "python", "java", "javascript", "php"]
+  max_prompt_tokens: 480
+  require_cwe_label: true
+  code_block_pattern: "```[A-Za-z0-9+#_\\-]*\\n(.*?)```"
+  cyclomatic_complexity:
+    maximum: 15
+    base: 1
+    reference_code_metadata_fields: ["origin_code"]
+    decision_patterns:
+      - "\\bif\\b"
+      - "\\belif\\b"
+      - "\\belse\\s+if\\b"
+      - "\\bfor\\b"
+      - "\\bwhile\\b"
+      - "\\bcase\\b"
+      - "\\bcatch\\b"
+      - "\\bexcept\\b"
+      - "\\?\\s*[^:;]+\\s*:"
+      - "&&"
+      - "\\|\\|"
+  normalisation:
+    collapse_blank_lines: true
+    comment_patterns:
+      default: ["//[^\\n]*", "/\\*.*?\\*/"]
+      python: ["#[^\\n]*"]
+      c: ["//[^\\n]*", "/\\*.*?\\*/"]
+      cpp: ["//[^\\n]*", "/\\*.*?\\*/"]
+      java: ["//[^\\n]*", "/\\*.*?\\*/"]
+      javascript: ["//[^\\n]*", "/\\*.*?\\*/"]
+      php: ["//[^\\n]*", "#[^\\n]*", "/\\*.*?\\*/"]
+  split:
+    stratify_by_cwe: true
+    seed: 42
+    fractions:
+      attribution: 0.7
+      evaluation: 0.3
+
+reasoning:
+  elicitation_batch_size: 1
+  restrict_mentions_to_benchmark_cwes: true
+  planning_phase_key: security_planning
+  implementation_phase_key: implementation
+  planning_fallback: prefix_before_code
+  heading_pattern: "^[ \\t]*(?:#{1,6}[ \\t]*)?(?:\\*\\*)?[ \\t]*(?:\\d+[\\.\\)][ \\t]*)?{heading}\\b[:.\\*]*"
+  code_block_pattern: "```[A-Za-z0-9+#_\\-]*\\n(.*?)```"
+  structured_templates: ["elicitation"]
+  phases:
+    - {key: problem_understanding, heading: "Problem Understanding"}
+    - {key: security_planning, heading: "Security Planning"}
+    - {key: design, heading: "Design"}
+    - {key: implementation, heading: "Implementation"}
+    - {key: iterative_refinement, heading: "Iterative Refinement"}
+  templates:
+    elicitation: "prompts/elicitation.txt"
+    concept_extraction: "prompts/concept_extraction.txt"
+    feature_description: "prompts/feature_description.txt"
+    unstructured: "prompts/unstructured.txt"
+    zero_shot_security: "prompts/zero_shot_security.txt"
+    one_shot_security: "prompts/one_shot_security.txt"
+    chain_of_thought_security: "prompts/chain_of_thought_security.txt"
+    functional_completion: "prompts/functional_completion.txt"
+    forced_category: "prompts/forced_category.txt"
+  curation:
+    cwe_specificity_filter: true
+    oracle_consistency_filter: true
+    require_non_empty_code: true
+    require_planning_segment: true
+    safe_requires_mentioned_cwe: false
+  concept_extraction:
+    max_new_tokens: 128
+    min_phrase_words: 2
+    max_phrase_words: 6
+    max_phrases_per_category: 32
+    rejected_markers: ["none", "no concepts", "not applicable", "no common content"]
+
+sae:
+  expansion_factor: 8
+  subtract_decoder_bias: true
+  normalise_decoder: true
+  epochs: 5
+  batch_size: 256
+  learning_rate: 0.0001
+  l1_coefficient: 0.001
+  held_out_fraction: 0.1
+  gradient_clipping: 1.0
+  device: "${env:REASONSEC_DEVICE:cuda}"
+  activation_store:
+    directory: "${env:REASONSEC_OUTPUT_DIRECTORY:./runs/reasonsec}/activations"
+    dtype: float16
+    retain_spans: ["planning", "code"]
+    max_tokens_per_sample: 0
+    overwrite: false
+
+rafs:
+  alpha: 0.25
+  normalisation_epsilon: 0.00000001
+  use_alignment_term: true
+  use_distributional_term: true
+  histogram:
+    bin_rule: sturges
+    fixed_bin_count: 32
+  aggregation:
+    alignment_span: planning
+    distributional_span: code
+    reduction: mean
+    encode_batch_size: 256
+    device: "${env:REASONSEC_DEVICE:cuda}"
+  selection:
+    use_vocabulary_size: true
+    fixed_count: 5
+    minimum_candidates: 5
+    maximum_candidates: 64
+    minimum_vulnerable_samples: 3
+    minimum_safe_samples: 3
+    random: false
+    random_seed: 42
+  safe_distribution:
+    action_bound_quantiles: [0.05, 0.95]
+    minimum_standard_deviation: 0.001
+    quantile_grid_size: 101
+  semantic_validation:
+    enabled: true
+    top_activating_contexts: 8
+    context_characters: 96
+    max_new_tokens: 48
+    minimum_token_overlap: 0.5
+    no_content_marker: "no common content"
+    encode_batch_size: 256
+    device: "${env:REASONSEC_DEVICE:cuda}"
+    keep_candidates_when_none_accepted: true
+
+intervention:
+  training:
+    prompts_per_category: 0
+    template: elicitation
+  state:
+    feature_position: last
+    minimum_phrase_matches: 1
+    include_reasoning_embedding: true
+    include_suspicion_vector: true
+    include_explicit_cwe_mentions: true
+    explicit_mention_weight: 1
+    device: "${env:REASONSEC_DEVICE:cuda}"
+  policy:
+    hidden_sizes: [256, 128]
+    activation: relu
+    log_standard_deviation_initial: -1.0
+    log_standard_deviation_bounds: [-5.0, 1.0]
+  proxy_classifier:
+    enabled: true
+    hidden_sizes: [256, 64]
+    activation: relu
+    epochs: 20
+    batch_size: 32
+    learning_rate: 0.001
+    weight_decay: 0.0001
+    validation_fraction: 0.2
+    restrict_to_selected_features: true
+    device: "${env:REASONSEC_DEVICE:cuda}"
+  reward:
+    beta_oracle: 1.0
+    beta_coherence: 0.6
+    beta_fidelity: 0.4
+    beta_deviation: 0.1
+    proxy_blend: 0.25
+    code_prefix_tokens: 128
+    fidelity_centering_constant: 5.0
+    fidelity_scale: 1.0
+    prevention:
+      sentence_pattern: "(?<=[.;!?])\\s+"
+      fallback_to_segment: true
+      include_cwe_identifier_sentences: true
+  environment:
+    proxy_device: "${env:REASONSEC_DEVICE:cuda}"
+  ppo:
+    epochs: 5
+    rollout_size: 16
+    minibatch_size: 8
+    update_iterations: 4
+    learning_rate: 0.0003
+    clip_epsilon: 0.2
+    value_coefficient: 0.5
+    entropy_coefficient: 0.01
+    max_gradient_norm: 0.5
+    normalise_advantages: true
+    observation_includes_embedding: true
+    observation_includes_suspicion: true
+    device: "${env:REASONSEC_DEVICE:cuda}"
+  runtime:
+    trace_max_new_tokens: 512
+    code_max_new_tokens: 350
+    trace_stop_markers: ["4. Implementation"]
+    stop_lookback_characters: 64
+    preserve_reconstruction_error: true
+    apply_positions: all
+    deterministic_action: true
+    fallback_cwe: null
+
+pipeline:
+  security_dataset: cyberseceval2
+  attribution_split: attribution
+  evaluation_split: evaluation
+  rebuild_corpus: false
+  rebuild_vocabulary: false
+  retrain_sae: false
+  recompute_feature_matrices: false
+  recompute_feature_sets: false
+  retrain_policies: false
+  retrain_fine_tuning: false
+
+baselines:
+  prompting:
+    max_new_tokens: 350
+  supervised_fine_tuning:
+    max_examples: 500
+    epochs: 3
+    batch_size: 1
+    gradient_accumulation_steps: 8
+    learning_rate: 0.0002
+    max_sequence_length: 1024
+    completion_template: "```{language}\n{code}\n```"
+    lora:
+      rank: 16
+      alpha: 32
+      dropout: 0.05
+      bias: none
+      task_type: CAUSAL_LM
+      target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+evaluation:
+  cache_results: true
+  share_embedder_across_seeds: true
+  secondary_security:
+    enabled: true
+    dataset: securityeval
+  utility:
+    enabled: true
+    dataset: instructhumaneval
+    language: python
+    program_template: "{context}\n{completion}\n{test}\ncheck({entry_point})\n"
+    execution:
+      enabled: false
+      interpreter: python3
+      timeout_seconds: 15
+      sandbox_command: []
+      working_directory: "${env:REASONSEC_OUTPUT_DIRECTORY:./runs/reasonsec}/execution_workspace"
+      environment: {}
+  knowledge:
+    enabled: true
+    dataset: mmlu
+    evaluation_split: test
+    few_shot_split: dev
+    few_shot_count: 5
+    length_normalise: false
+    answer_labels: ["A", "B", "C", "D"]
+    question_template: "{question}\n{choices}Answer:"
+    choice_template: "{label}. {choice}\n"
+    answer_template: " {answer}\n\n"
+  statistics:
+    alpha: 0.05
+    power: 0.8
+    mcnemar_exact: true
+    continuity_correction: true
+  cost:
+    repetitions: 200
+    warmup_repetitions: 20
+    device: "${env:REASONSEC_DEVICE:cuda}"
+
+methods:
+  unmodified:
+    kind: prompting
+    strategy: null
+    template: unstructured
+  zero_shot_security:
+    kind: prompting
+    strategy: null
+    template: zero_shot_security
+  one_shot_security:
+    kind: prompting
+    strategy: null
+    template: one_shot_security
+  cot_security:
+    kind: prompting
+    strategy: null
+    template: chain_of_thought_security
+  sdlc_prompting:
+    kind: prompting
+    strategy: null
+    template: elicitation
+  sft_lora:
+    kind: fine_tuned
+    strategy: null
+    template: unstructured
+  reasonsec:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+  thea:
+    kind: intervention
+    strategy: quantile_mapping
+    template: elicitation
+    overrides:
+      rafs.alpha: 1.0
+      rafs.use_alignment_term: false
+      rafs.selection.use_vocabulary_size: false
+      rafs.semantic_validation.enabled: false
+  thea_zero:
+    kind: intervention
+    strategy: zero
+    template: elicitation
+    attribution_variant: thea
+    overrides:
+      rafs.alpha: 1.0
+      rafs.use_alignment_term: false
+      rafs.selection.use_vocabulary_size: false
+      rafs.semantic_validation.enabled: false
+  oracle_only:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    attribution_variant: reasonsec
+    overrides:
+      intervention.reward.beta_coherence: 0.0
+      intervention.reward.beta_fidelity: 0.0
+      intervention.reward.proxy_blend: 0.0
+  n_sdlc:
+    kind: intervention
+    strategy: policy
+    template: chain_of_thought_security
+    attribution_variant: reasonsec
+    overrides:
+      intervention.runtime.trace_stop_markers: ["```"]
+      intervention.training.template: chain_of_thought_security
+      reasoning.planning_fallback: prefix_before_code
+  n_rafs:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    overrides:
+      rafs.alpha: 1.0
+      rafs.use_alignment_term: false
+  n_adaptk:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    overrides:
+      rafs.selection.use_vocabulary_size: false
+      rafs.selection.fixed_count: 5
+  n_rcc:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    attribution_variant: reasonsec
+    overrides:
+      intervention.reward.beta_coherence: 0.0
+  n_fsf:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    attribution_variant: reasonsec
+    overrides:
+      intervention.reward.beta_fidelity: 0.0
+  n_semval:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    overrides:
+      rafs.semantic_validation.enabled: false
+  rafs_only:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    attribution_variant: reasonsec
+    overrides:
+      intervention.reward.beta_coherence: 0.0
+      intervention.reward.beta_fidelity: 0.0
+  rcr_only:
+    kind: intervention
+    strategy: policy
+    template: elicitation
+    overrides:
+      rafs.selection.random: true
+
+experiments:
+  rq1_sae_baselines:
+    kind: method_comparison
+    methods: ["thea", "thea_zero", "oracle_only", "reasonsec"]
+    reference_method: reasonsec
+    include_per_category: true
+  rq2_prompting_and_fine_tuning:
+    kind: method_comparison
+    methods: ["unmodified", "zero_shot_security", "one_shot_security", "cot_security", "sft_lora", "thea", "reasonsec"]
+    reference_method: reasonsec
+    include_per_category: false
+  rq3_ablation:
+    kind: method_comparison
+    methods: ["reasonsec", "n_sdlc", "n_rafs", "n_adaptk", "n_rcc", "n_fsf", "n_semval", "rafs_only", "rcr_only"]
+    reference_method: reasonsec
+    include_per_category: false
+  rq4_cross_model:
+    kind: cross_model
+    methods: ["unmodified", "reasonsec"]
+    reference_method: reasonsec
+    baseline_method: unmodified
+    models:
+      - label: primary
+        parameters: null
+        overrides:
+          model.name_or_path: "${env:REASONSEC_MODEL:/absolute/path/to/llama-3.1-8b-instruct}"
+          model.layer: 19
+      - label: alternate
+        parameters: null
+        overrides:
+          model.name_or_path: "${env:REASONSEC_MODEL_ALTERNATE:/absolute/path/to/second/model}"
+          model.layer: 19
+  rq5_cost:
+    kind: cost_analysis
+    methods: ["thea", "oracle_only", "reasonsec"]
+    reference_method: reasonsec
+  robustness_reasoning:
+    kind: reasoning_noise
+    method: reasonsec
+    noise_rates: [0.0, 0.25, 0.5, 0.75, 1.0]
+    include_forced_category: true
+  robustness_oracle:
+    kind: oracle_reliability
+    methods: ["thea_zero", "oracle_only", "reasonsec"]
+    alternative_oracle: codeql
+  robustness_sensitivity:
+    kind: hyperparameter_sensitivity
+    method: reasonsec
+    sweeps:
+      intervention.reward.beta_coherence: [0.2, 0.4, 0.6, 0.8, 1.0]
+      intervention.reward.beta_fidelity: [0.0, 0.2, 0.4, 0.6, 0.8]
+      rafs.alpha: [0.0, 0.25, 0.5, 0.75, 1.0]
+  robustness_feature_labels:
+    kind: feature_label_agreement
+    method: reasonsec
+    rating_category_count: 3
+    human_ratings_path: null

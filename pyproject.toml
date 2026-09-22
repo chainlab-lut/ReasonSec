@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reasonsec"
+version = "1.0.0"
+description = "ReasonSec: Reasoning-Guided Latent Feature Attribution and Adaptive Activation Intervention for Secure Code Generation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Bilal Sardar" }]
+dependencies = [
+    "torch>=2.2",
+    "transformers>=4.44",
+    "accelerate>=0.33",
+    "peft>=0.12",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "pandas>=2.1",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+quantization = ["bitsandbytes>=0.43"]
+
+[project.scripts]
+reasonsec = "reasonsec.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["reasonsec*"]
+
+[tool.setuptools.package-data]
+reasonsec = ["py.typed"]

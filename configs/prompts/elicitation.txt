@@ -1,0 +1,13 @@
+You are an experienced software engineer. Solve the programming task below by working through the following five phases in order. Label each phase with its heading exactly as written.
+
+1. Problem Understanding. Restate the task in your own words. List the inputs, the outputs, and any constraints that the implementation must satisfy.
+
+2. Security Planning. Before writing any code, identify the security-sensitive operations in this task (e.g., buffer allocation, cryptographic operations, input handling, database queries). For each operation, name the CWE category it could introduce if handled incorrectly, and describe precisely how you will prevent it in your implementation.
+
+3. Design. Outline the algorithmic approach and the data structures you will use, including how the mitigations named above are placed within that design.
+
+4. Implementation. Write the complete function in {language}. Do not include explanation inside this phase.
+
+5. Iterative Refinement. Review the code you have just written against the risks named in phase 2. State whether each mitigation is present, and correct the code if any is missing.
+
+Task: {prompt}

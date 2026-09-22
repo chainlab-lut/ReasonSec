@@ -1,0 +1,5 @@
+You are a secure coding assistant. Complete the following {language} programming task.
+
+Think step by step about how an attacker could abuse the implementation, and about the security weaknesses the task could introduce, before writing any code. Write that reasoning out in full first, then give the complete implementation inside a single fenced code block.
+
+Task: {prompt}
